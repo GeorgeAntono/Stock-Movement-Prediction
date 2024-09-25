@@ -7,8 +7,9 @@ from nltk.tokenize import word_tokenize
 from collections import Counter
 import matplotlib.pyplot as plt
 from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.linear_model import LogisticRegression
 from sklearn.metrics.pairwise import cosine_similarity
-from sklearn.feature_selection import chi2
+
 
 # Ensure NLTK data is downloaded
 nltk.download('stopwords')
@@ -98,46 +99,38 @@ plt.show()
 vectorizer = TfidfVectorizer(stop_words='english', max_features=500)
 tfidf_matrix = vectorizer.fit_transform(filtered_df['filtered_text_str'])
 
-# Get feature names (words) from the TF-IDF vectorizer
-feature_names = vectorizer.get_feature_names_out()
 
-# Apply Chi-Square test to find words most indicative of each class
-chi2_scores, p_values = chi2(tfidf_matrix, filtered_df['target'])
+# Train a linear classifier (e.g., Logistic Regression) on the TF-IDF matrix
+clf = LogisticRegression(max_iter=1000)
+clf.fit(tfidf_matrix, filtered_df['target'])
 
-# Create a DataFrame of words and their Chi-Square scores
-chi2_df = pd.DataFrame({'Word': feature_names, 'Chi2 Score': chi2_scores})
 
-# Identify top indicative words for each class based on the average TF-IDF scores for each class
-# Separate the TF-IDF matrix by class
-tfidf_class_0 = tfidf_matrix[filtered_df['target'] == 0]
-tfidf_class_1 = tfidf_matrix[filtered_df['target'] == 1]
+def print_top_features(vectorizer, coef):
+    """Prints features with the highest coefficient values for binary classification."""
+    feature_names = vectorizer.get_feature_names_out()
 
-# Calculate the mean TF-IDF scores for each word in each class
-mean_scores_class_0 = np.mean(tfidf_class_0.toarray(), axis=0)
-mean_scores_class_1 = np.mean(tfidf_class_1.toarray(), axis=0)
+    # Top 20 features with the most negative coefficients (indicative of Class 0)
+    top_features_class_0 = np.argsort(coef)[:20]
+    print("\nTop 20 Words Indicative of Class 0 (Stock Price Down):")
+    print(" ".join(feature_names[j] for j in top_features_class_0))
 
-# Create DataFrames for each class's scores
-class_0_df = pd.DataFrame({'Word': feature_names, 'Mean TF-IDF': mean_scores_class_0})
-class_1_df = pd.DataFrame({'Word': feature_names, 'Mean TF-IDF': mean_scores_class_1})
+    # Top 20 features with the most positive coefficients (indicative of Class 1)
+    top_features_class_1 = np.argsort(coef)[-20:]
+    print("\nTop 20 Words Indicative of Class 1 (Stock Price Up):")
+    print(" ".join(feature_names[j] for j in top_features_class_1))
 
-# Identify the top 20 words most indicative of each class
-top_words_class_0 = class_0_df.nlargest(20, 'Mean TF-IDF')['Word'].tolist()
-top_words_class_1 = class_1_df.nlargest(20, 'Mean TF-IDF')['Word'].tolist()
+    return top_features_class_0, top_features_class_1
 
-# Display the top 20 words indicative of each class
-print("\nTop 20 Words Indicative of Class 0:")
-print(top_words_class_0)
 
-print("\nTop 20 Words Indicative of Class 1:")
-print(top_words_class_1)
+# Extract the coefficients from the classifier
+coef = clf.coef_[0]
+
+# Print the most informative features and get the indices for visualization
+top_features_class_0, top_features_class_1 = print_top_features(vectorizer, coef)
+
 
 
 '''
-
-# TF-IDF Representation of Documents using the processed and filtered text
-vectorizer = TfidfVectorizer(stop_words='english', max_features=10)
-tfidf_matrix = vectorizer.fit_transform(news_df['filtered_text_str'])
-
 # Compute cosine similarity matrix
 similarity_matrix = cosine_similarity(tfidf_matrix)
 
