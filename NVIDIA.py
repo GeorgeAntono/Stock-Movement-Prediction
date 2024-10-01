@@ -48,14 +48,14 @@ stock_df['Date'] = pd.to_datetime(stock_df['Date'])
 merged_df = pd.merge(news_df, stock_df, on='Date', how='inner')
 
 # Filter to keep only articles that have matching stock data
-filtered_df = merged_df[['content', 'Open', 'Close', 'Date']]
+nvidia_df = merged_df[['content', 'Open', 'Close', 'Date']]
 
 # Label the target variable based on the opening and closing prices
-filtered_df['target'] = np.where(filtered_df['Open'] > filtered_df['Close'], 0, 1)
+nvidia_df['target'] = np.where(nvidia_df['Open'] > nvidia_df['Close'], 0, 1)
 
 # Display the first few rows to verify the merging and labeling
 print("\nFiltered and Labeled Data:")
-print(filtered_df.head())
+print(nvidia_df.head())
 
 '''
 
@@ -96,20 +96,20 @@ stock_df['Date'] = pd.to_datetime(stock_df['Date'])
 merged_df = pd.merge(nvidia_related_articles, stock_df, on='Date', how='inner')
 
 # Filter to keep only articles that have matching stock data
-filtered_df = merged_df[['content', 'Open', 'Close', 'Date']]
+nvidia_df = merged_df[['content', 'Open', 'Close', 'Date']]
 
 # Label the target variable based on the opening and closing prices
-filtered_df['target'] = np.where(filtered_df['Open'] > filtered_df['Close'], 0, 1)
+nvidia_df['target'] = np.where(nvidia_df['Open'] > nvidia_df['Close'], 0, 1)
 
 # Display the first few rows to verify the merging and labeling
 print("\nFiltered and Labeled Data:")
-print(filtered_df.head())
+print(nvidia_df.head())
 
 # In[6]:
 
 
 # Check for duplicate documents based on the 'content' column
-duplicate_docs = filtered_df[filtered_df['content'].duplicated(keep=False)]
+duplicate_docs = nvidia_df[nvidia_df['content'].duplicated(keep=False)]
 
 # Display the duplicate documents (if any)
 print(f"Number of duplicate documents found: {duplicate_docs.shape[0]}")
@@ -118,17 +118,17 @@ if not duplicate_docs.empty:
     print(duplicate_docs[['content']])
 
 # Remove duplicate documents, keeping the first occurrence
-filtered_df = filtered_df.drop_duplicates(subset='content', keep='first').reset_index(drop=True)
+nvidia_df = nvidia_df.drop_duplicates(subset='content', keep='first').reset_index(drop=True)
 
 # Display the updated DataFrame
-print(f"Number of documents after removing duplicates: {filtered_df.shape[0]}")
+print(f"Number of documents after removing duplicates: {nvidia_df.shape[0]}")
 
 # In[7]:
 
 
 # Basic descriptive statistics for the news dataset
-num_articles = filtered_df.shape[0]
-average_words_per_article = filtered_df['content'].apply(lambda x: len(str(x).split())).mean()
+num_articles = nvidia_df.shape[0]
+average_words_per_article = nvidia_df['content'].apply(lambda x: len(str(x).split())).mean()
 print(f'The number of articles before filtering is: {news_df.shape[0]}')
 print(f"The number of articles after filtering is: {num_articles}")
 print(f"The average amount of words per article is: {average_words_per_article}")
@@ -143,13 +143,13 @@ stemmer = PorterStemmer()
 
 
 # Tokenize content for word frequency analysis
-filtered_df.loc[:, 'text_length'] = filtered_df['content'].apply(lambda x: len(str(x).split()))
+nvidia_df.loc[:, 'text_length'] = nvidia_df['content'].apply(lambda x: len(str(x).split()))
 
 # In[10]:
 
 
 # Tokenize content for word frequency analysis
-filtered_df.loc[:, 'processed_text'] = filtered_df['content'].apply(lambda x: word_tokenize(str(x).lower()))
+nvidia_df.loc[:, 'processed_text'] = nvidia_df['content'].apply(lambda x: word_tokenize(str(x).lower()))
 
 # In[11]:
 
@@ -157,7 +157,7 @@ filtered_df.loc[:, 'processed_text'] = filtered_df['content'].apply(lambda x: wo
 # Remove stopwords and punctuation for better NLP insights
 stop_words = set(stopwords.words('english'))
 # Remove stopwords, punctuation, and apply stemming
-filtered_df.loc[:, 'filtered_text'] = filtered_df['processed_text'].apply(
+nvidia_df.loc[:, 'filtered_text'] = nvidia_df['processed_text'].apply(
     lambda words: [stemmer.stem(word) for word in words if word.isalpha() and word not in stop_words]
 )
 
@@ -165,13 +165,13 @@ filtered_df.loc[:, 'filtered_text'] = filtered_df['processed_text'].apply(
 
 
 # Join the filtered words back into strings for TF-IDF
-filtered_df.loc[:, 'filtered_text_str'] = filtered_df['filtered_text'].apply(lambda x: ' '.join(x))
+nvidia_df.loc[:, 'filtered_text_str'] = nvidia_df['filtered_text'].apply(lambda x: ' '.join(x))
 
 # In[13]:
 
 
 # Frequency analysis of the most common words
-all_words = [word for content in filtered_df['filtered_text'] for word in content]
+all_words = [word for content in nvidia_df['filtered_text'] for word in content]
 word_freq = Counter(all_words)
 most_common_words = word_freq.most_common(50)
 
@@ -184,14 +184,14 @@ print(most_common_words)
 
 # TF-IDF Representation of Documents using the processed and filtered text
 vectorizer = TfidfVectorizer(stop_words='english', max_features=500)  # Reduced max features
-tfidf_matrix = vectorizer.fit_transform(filtered_df['filtered_text_str'])
+tfidf_matrix = vectorizer.fit_transform(nvidia_df['filtered_text_str'])
 
 # In[15]:
 
 
 # Train a linear classifier (e.g., Logistic Regression) on the TF-IDF matrix
 clf = LogisticRegression(max_iter=1000)
-clf.fit(tfidf_matrix, filtered_df['target'])
+clf.fit(tfidf_matrix, nvidia_df['target'])
 
 
 # In[16]:
@@ -341,8 +341,8 @@ least_similar_indices = np.unravel_index(np.argmin(similarity_matrix, axis=None)
 
 
 # Inspect the most similar documents
-similar_doc_1 = filtered_df.iloc[most_similar_indices[0]]
-similar_doc_2 = filtered_df.iloc[most_similar_indices[1]]
+similar_doc_1 = nvidia_df.iloc[most_similar_indices[0]]
+similar_doc_2 = nvidia_df.iloc[most_similar_indices[1]]
 
 print("\nMost Similar Documents:\n")
 print("Document 1:")
@@ -354,8 +354,8 @@ print(similar_doc_2['content'])
 
 
 # Inspect the least similar documents
-dissimilar_doc_1 = filtered_df.iloc[least_similar_indices[0]]
-dissimilar_doc_2 = filtered_df.iloc[least_similar_indices[1]]
+dissimilar_doc_1 = nvidia_df.iloc[least_similar_indices[0]]
+dissimilar_doc_2 = nvidia_df.iloc[least_similar_indices[1]]
 
 print("\n\nMost Dissimilar Documents:\n")
 print("Document 1:")
@@ -367,7 +367,7 @@ print(dissimilar_doc_2['content'])
 
 
 # Prepare the text data for Word2Vec
-sentences = filtered_df['filtered_text'].tolist()
+sentences = nvidia_df['filtered_text'].tolist()
 
 # ## Word2Vec Model Training using CBOW
 
@@ -396,7 +396,7 @@ def get_document_embedding(doc):
 
 
 # Applying to the dataset
-filtered_df['doc_embedding'] = filtered_df['filtered_text'].apply(get_document_embedding)
+nvidia_df['doc_embedding'] = nvidia_df['filtered_text'].apply(get_document_embedding)
 
 
 # In[ ]:
@@ -454,7 +454,7 @@ def document_embedding_tfidf(model, document, tfidf, feature_names, vector_size=
 tfidf_feature_names = vectorizer.get_feature_names_out()
 
 # Apply the function to all documents in your filtered dataframe
-filtered_df['doc_embedding'] = filtered_df['filtered_text'].apply(
+nvidia_df['doc_embedding'] = nvidia_df['filtered_text'].apply(
     lambda doc: document_embedding_tfidf(word2vec_model, doc, vectorizer, tfidf_feature_names)
 )
 doc_embedding = document_embedding_tfidf(word2vec_model, document_words, tfidf, tfidf_feature_names)
@@ -468,7 +468,7 @@ from sklearn.pipeline import make_pipeline
 
 # Feature Matrix and Target Variable
 X = tfidf_matrix
-y = filtered_df['target']
+y = nvidia_df['target']
 
 # Split the data into training and test sets (80% train, 20% test)
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=17, stratify=y)
@@ -569,7 +569,7 @@ def get_document_embedding(doc):
 
 
 # Applying to the dataset
-filtered_df['doc_embedding'] = filtered_df['filtered_text'].apply(get_document_embedding)
+nvidia_df['doc_embedding'] = nvidia_df['filtered_text'].apply(get_document_embedding)
 
 # In[43]:
 
@@ -578,7 +578,7 @@ from sklearn.model_selection import train_test_split
 
 # First step is to split the data into training and test sets
 X = tfidf_matrix
-y = filtered_df['target']
+y = nvidia_df['target']
 
 # Split the data into training and test sets (80% train, 20% test)
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=17, stratify=y)
